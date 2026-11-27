@@ -1,38 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import FileUploader from '../FileUploader';
 import TextDisplay from '../TextDisplay';
 import ErrorMessage from '../ErrorMessage';
-import { countPunctuation, downloadTextFile, readTextFile } from '../../utils/textProcessing';
+import { useFileContext } from '../../context/FileContext';
+import { countPunctuation, downloadTextFile } from '../../utils/textProcessing';
 import type { PunctuationStat } from '../../utils/textProcessing';
 
 const Module4: React.FC = () => {
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [inputText, setInputText] = useState('');
+  const { inputText, fileName, setInputText, setFileName } = useFileContext();
   const [outputText, setOutputText] = useState('');
   const [stats, setStats] = useState<PunctuationStat[]>([]);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!inputText) {
+      setOutputText('');
+      setStats([]);
+      setError('');
+      return;
+    }
+    const result = countPunctuation(inputText);
+    setStats(result);
+    setOutputText(
+      result.map(s => `${s.symbol === ' ' ? 'пробел' : s.symbol}: ${s.count}`).join('\n')
+    );
+  }, [inputText]);
 
   const handleFileSelect = async (selectedFile: File) => {
     setError('');
     setFileName(selectedFile.name);
     try {
-      const text = await readTextFile(selectedFile);
+      const text = await selectedFile.text();
       if (text.trim().length === 0) {
         setError('Файл пуст');
         setInputText('');
-        setOutputText('');
-        setStats([]);
         return;
       }
       setInputText(text);
-
-      const result = countPunctuation(text);
-      setStats(result);
-
-      const output = result
-        .map(s => `${s.symbol === ' ' ? 'пробел' : s.symbol}: ${s.count}`)
-        .join('\n');
-      setOutputText(output);
     } catch {
       setError('Ошибка чтения файла');
     }
