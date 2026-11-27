@@ -1,27 +1,55 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import FileUploader from '../FileUploader';
 import TextDisplay from '../TextDisplay';
 import ErrorMessage from '../ErrorMessage';
-import { removeSpaces, restoreSpaces, downloadTextFile, readTextFile } from '../../utils/textProcessing';
+import { useFileContext } from '../../context/FileContext';
+import { removeSpaces, restoreSpaces, downloadTextFile } from '../../utils/textProcessing';
 
 const Module3: React.FC = () => {
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [inputText, setInputText] = useState('');
+  const { inputText, fileName, setInputText, setFileName } = useFileContext();
   const [outputText, setOutputText] = useState('');
   const [mode, setMode] = useState<'remove' | 'restore'>('remove');
   const [positionsFile, setPositionsFile] = useState<File | null>(null);
   const [positionsFileName, setPositionsFileName] = useState<string | null>(null);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    if (!inputText) {
+      setOutputText('');
+      setError('');
+      return;
+    }
+    setError('');
+
+    if (mode === 'remove') {
+      const { result } = removeSpaces(inputText);
+      setOutputText(result);
+    } else {
+      if (!positionsFile) {
+        setError('Выберите файл позиций');
+        return;
+      }
+      positionsFile.text().then((posContent) => {
+        const positions = posContent.split('\n').map(p => parseInt(p.trim(), 10)).filter(n => !isNaN(n));
+        if (positions.length === 0) {
+          setError('Некорректный файл позиций');
+          return;
+        }
+        setOutputText(restoreSpaces(inputText, positions));
+      }).catch(() => {
+        setError('Некорректный файл позиций');
+      });
+    }
+  }, [inputText, mode, positionsFile]);
+
   const handleFileSelect = async (selectedFile: File) => {
     setError('');
     setFileName(selectedFile.name);
     try {
-      const text = await readTextFile(selectedFile);
+      const text = await selectedFile.text();
       if (text.trim().length === 0) {
         setError('Файл пуст');
         setInputText('');
-        setOutputText('');
         return;
       }
       setInputText(text);
@@ -30,42 +58,10 @@ const Module3: React.FC = () => {
     }
   };
 
-  const handlePositionsFileSelect = async (selectedFile: File) => {
+  const handlePositionsFileSelect = (selectedFile: File) => {
     setError('');
     setPositionsFile(selectedFile);
     setPositionsFileName(selectedFile.name);
-  };
-
-  const processText = () => {
-    setError('');
-    if (!inputText) {
-      setError('Файл не выбран');
-      return;
-    }
-
-    if (mode === 'remove') {
-      const { result, positions } = removeSpaces(inputText);
-      setOutputText(result);
-      // Сохраняем позиции в отдельный файл автоматически
-      const positionsContent = positions.join('\n');
-      downloadTextFile(positionsContent, 'positions.txt');
-    } else {
-      if (!positionsFile) {
-        setError('Некорректный файл позиций');
-        return;
-      }
-      readTextFile(positionsFile).then((posContent) => {
-        const positions = posContent.split('\n').map(p => parseInt(p.trim(), 10)).filter(n => !isNaN(n));
-        if (positions.length === 0) {
-          setError('Некорректный файл позиций');
-          return;
-        }
-        const restored = restoreSpaces(inputText, positions);
-        setOutputText(restored);
-      }).catch(() => {
-        setError('Некорректный файл позиций');
-      });
-    }
   };
 
   const handleDownload = () => {
@@ -106,10 +102,6 @@ const Module3: React.FC = () => {
             label="Выбрать файл позиций"
           />
         )}
-
-        <button className="btn btn-primary" onClick={processText} disabled={!inputText}>
-          Выполнить
-        </button>
 
         {inputText && <TextDisplay title="Исходный файл" content={inputText} />}
 

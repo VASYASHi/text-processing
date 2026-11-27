@@ -1,30 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import FileUploader from '../FileUploader';
 import TextDisplay from '../TextDisplay';
 import ErrorMessage from '../ErrorMessage';
-import { reverseWordsInSentences, downloadTextFile, readTextFile } from '../../utils/textProcessing';
+import { useFileContext } from '../../context/FileContext';
+import { reverseWordsInSentences, downloadTextFile } from '../../utils/textProcessing';
 
 const Module9: React.FC = () => {
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [inputText, setInputText] = useState('');
+  const { inputText, fileName, setInputText, setFileName } = useFileContext();
   const [outputText, setOutputText] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!inputText) {
+      setOutputText('');
+      setError('');
+      return;
+    }
+    setOutputText(reverseWordsInSentences(inputText));
+  }, [inputText]);
 
   const handleFileSelect = async (selectedFile: File) => {
     setError('');
     setFileName(selectedFile.name);
     try {
-      const text = await readTextFile(selectedFile);
+      const text = await selectedFile.text();
       if (text.trim().length === 0) {
         setError('Файл пуст');
         setInputText('');
-        setOutputText('');
         return;
       }
       setInputText(text);
-
-      const result = reverseWordsInSentences(text);
-      setOutputText(result);
     } catch {
       setError('Ошибка чтения файла');
     }

@@ -1,36 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import FileUploader from '../FileUploader';
 import TextDisplay from '../TextDisplay';
 import ErrorMessage from '../ErrorMessage';
-import { getWordLengths, downloadTextFile, readTextFile } from '../../utils/textProcessing';
+import { useFileContext } from '../../context/FileContext';
+import { getWordLengths, downloadTextFile } from '../../utils/textProcessing';
 import type { WordLengthsResult } from '../../utils/textProcessing';
 
 const Module2: React.FC = () => {
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [inputText, setInputText] = useState('');
+  const { inputText, fileName, setInputText, setFileName } = useFileContext();
   const [outputText, setOutputText] = useState('');
   const [result, setResult] = useState<WordLengthsResult | null>(null);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!inputText) {
+      setOutputText('');
+      setResult(null);
+      setError('');
+      return;
+    }
+    const res = getWordLengths(inputText);
+    setResult(res);
+    setOutputText(
+      `Общее количество слов: ${res.totalWords}\n\nДлины слов (по убыванию):\n${res.lengths.join(', ')}`
+    );
+  }, [inputText]);
 
   const handleFileSelect = async (selectedFile: File) => {
     setError('');
     setFileName(selectedFile.name);
     try {
-      const text = await readTextFile(selectedFile);
+      const text = await selectedFile.text();
       if (text.trim().length === 0) {
         setError('Файл пуст');
         setInputText('');
-        setOutputText('');
-        setResult(null);
         return;
       }
       setInputText(text);
-
-      const res = getWordLengths(text);
-      setResult(res);
-
-      const output = `Общее количество слов: ${res.totalWords}\n\nДлины слов (по убыванию):\n${res.lengths.join(', ')}`;
-      setOutputText(output);
     } catch {
       setError('Ошибка чтения файла');
     }

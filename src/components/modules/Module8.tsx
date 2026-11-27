@@ -1,38 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import FileUploader from '../FileUploader';
 import TextDisplay from '../TextDisplay';
 import ErrorMessage from '../ErrorMessage';
-import { analyzeSentences, downloadTextFile, readTextFile } from '../../utils/textProcessing';
+import { useFileContext } from '../../context/FileContext';
+import { analyzeSentences, downloadTextFile } from '../../utils/textProcessing';
 import type { SentencesResult } from '../../utils/textProcessing';
 
 const Module8: React.FC = () => {
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [inputText, setInputText] = useState('');
+  const { inputText, fileName, setInputText, setFileName } = useFileContext();
   const [outputText, setOutputText] = useState('');
   const [result, setResult] = useState<SentencesResult | null>(null);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!inputText) {
+      setOutputText('');
+      setResult(null);
+      setError('');
+      return;
+    }
+    const res = analyzeSentences(inputText);
+    setResult(res);
+    setOutputText(
+      `Количество предложений: ${res.count}\n\n${res.sentences
+        .map((s, i) => `${i + 1}. "${s.text}" — длина: ${s.length}`)
+        .join('\n')}`
+    );
+  }, [inputText]);
 
   const handleFileSelect = async (selectedFile: File) => {
     setError('');
     setFileName(selectedFile.name);
     try {
-      const text = await readTextFile(selectedFile);
+      const text = await selectedFile.text();
       if (text.trim().length === 0) {
         setError('Файл пуст');
         setInputText('');
-        setOutputText('');
-        setResult(null);
         return;
       }
       setInputText(text);
-
-      const res = analyzeSentences(text);
-      setResult(res);
-
-      const output = `Количество предложений: ${res.count}\n\n${res.sentences
-        .map((s, i) => `${i + 1}. "${s.text}" — длина: ${s.length}`)
-        .join('\n')}`;
-      setOutputText(output);
     } catch {
       setError('Ошибка чтения файла');
     }
