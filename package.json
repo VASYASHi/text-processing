@@ -2,12 +2,15 @@
   "name": "text-processing",
   "private": true,
   "version": "0.0.0",
+  "homepage": "https://VASYASHi.github.io/text-processing",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
     "react": "^19.3.1",
@@ -21,6 +24,7 @@
     "@vitejs/devtools-rolldown": "^0.8.3",
     "@vitejs/devtools-vite": "^0.8.3",
     "@vitejs/plugin-react": "^6.3.0",
+    "gh-pages": "^6.3.0",
     "oxlint": "^1.94.0",
     "typescript": "~7.0.2",
     "vite": "^8.4.0"
