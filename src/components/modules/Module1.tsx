@@ -1,45 +1,45 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import FileUploader from '../FileUploader';
 import TextDisplay from '../TextDisplay';
 import ErrorMessage from '../ErrorMessage';
-import { countLetterCases, downloadTextFile, readTextFile } from '../../utils/textProcessing';
+import { useFileContext } from '../../context/FileContext';
+import { countLetterCases, downloadTextFile } from '../../utils/textProcessing';
 import type { LetterStat } from '../../utils/textProcessing';
 
 const Module1: React.FC = () => {
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [inputText, setInputText] = useState('');
+  const { inputText, fileName, setInputText, setFileName } = useFileContext();
   const [outputText, setOutputText] = useState('');
   const [stats, setStats] = useState<LetterStat[]>([]);
   const [error, setError] = useState('');
 
+  useEffect(() => {
+    if (!inputText) {
+      setOutputText('');
+      setStats([]);
+      setError('');
+      return;
+    }
+    const result = countLetterCases(inputText);
+    setStats(result);
+    setOutputText(
+      result.map(s => `${s.letter} (${s.case === 'upper' ? 'верхний' : 'нижний'} регистр): ${s.count}`).join('\n')
+    );
+  }, [inputText]);
+
   const handleFileSelect = async (selectedFile: File) => {
     setError('');
     setFileName(selectedFile.name);
-
     try {
-      const text = await readTextFile(selectedFile);
+      const text = await selectedFile.text();
       if (text.trim().length === 0) {
         setError('Файл пуст');
         setInputText('');
-        setOutputText('');
-        setStats([]);
         return;
       }
       setInputText(text);
-      processText(text);
     } catch {
       setError('Ошибка чтения файла');
     }
-  };
-
-  const processText = (text: string) => {
-    const result = countLetterCases(text);
-    setStats(result);
-
-    const output = result
-      .map(s => `${s.letter} (${s.case === 'upper' ? 'верхний' : 'нижний'} регистр): ${s.count}`)
-      .join('\n');
-    setOutputText(output);
   };
 
   const handleDownload = () => {

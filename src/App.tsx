@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { FileProvider } from './context/FileContext';
 import Navbar from './components/Navbar';
 import Module1 from './components/modules/Module1';
 import Module2 from './components/modules/Module2';
@@ -29,12 +30,14 @@ const App: React.FC = () => {
   };
 
   return (
-    <div>
-      <Navbar activeModule={activeModule} onModuleChange={setActiveModule} />
-      <div className="container">
-        {renderModule()}
+    <FileProvider>
+      <div>
+        <Navbar activeModule={activeModule} onModuleChange={setActiveModule} />
+        <div className="container">
+          {renderModule()}
+        </div>
       </div>
-    </div>
+    </FileProvider>
   );
 };
 

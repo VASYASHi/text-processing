@@ -1,36 +1,40 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import FileUploader from '../FileUploader';
 import TextDisplay from '../TextDisplay';
 import ErrorMessage from '../ErrorMessage';
-import { countLetterFrequency, downloadTextFile, readTextFile } from '../../utils/textProcessing';
+import { useFileContext } from '../../context/FileContext';
+import { countLetterFrequency, downloadTextFile } from '../../utils/textProcessing';
 import type { LetterFrequency } from '../../utils/textProcessing';
 
 const Module7: React.FC = () => {
-  const [fileName, setFileName] = useState<string | null>(null);
-  const [inputText, setInputText] = useState('');
+  const { inputText, fileName, setInputText, setFileName } = useFileContext();
   const [outputText, setOutputText] = useState('');
   const [stats, setStats] = useState<LetterFrequency[]>([]);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!inputText) {
+      setOutputText('');
+      setStats([]);
+      setError('');
+      return;
+    }
+    const result = countLetterFrequency(inputText);
+    setStats(result);
+    setOutputText(result.map(s => `${s.letter}: ${s.count}`).join('\n'));
+  }, [inputText]);
 
   const handleFileSelect = async (selectedFile: File) => {
     setError('');
     setFileName(selectedFile.name);
     try {
-      const text = await readTextFile(selectedFile);
+      const text = await selectedFile.text();
       if (text.trim().length === 0) {
         setError('Файл пуст');
         setInputText('');
-        setOutputText('');
-        setStats([]);
         return;
       }
       setInputText(text);
-
-      const result = countLetterFrequency(text);
-      setStats(result);
-
-      const output = result.map(s => `${s.letter}: ${s.count}`).join('\n');
-      setOutputText(output);
     } catch {
       setError('Ошибка чтения файла');
     }
